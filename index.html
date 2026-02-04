@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Juego LEGO 3D Realista 💘</title>
+<style>
+  body {
+    margin: 0;
+    font-family: "Comic Sans MS", cursive, sans-serif;
+    background: #fce4ec;
+    overflow-x: hidden;
+    perspective: 1200px; /* Perspectiva 3D */
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh; /* Centra la página verticalmente */
+  }
+
+  /* 🌈 Fondo LEGO 3D dinámico con más bloques */
+  .lego-wall {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-content: flex-start;
+    z-index: -10;
+    padding-top: 50px;
+    transform: rotateX(10deg);
+  }
+
+  .lego-block {
+    width: 70px;
+    height: 30px;
+    margin: 4px;
+    position: relative;
+    background: linear-gradient(to bottom, #ff6f91, #ff4d6d);
+    border-radius: 6px;
+    box-shadow: 0 5px 0 rgba(0, 0, 0, 0.3), inset 0 -2px 4px rgba(0,0,0,0.2);
+    transform-style: preserve-3d;
+    transition: transform 0.3s ease, background 0.5s ease;
+  }
+
+  /* 🌟 Las "tapas" de los bloques LEGO */
+  .lego-block::before {
+    content: "";
+    position: absolute;
+    top: -6px;
+    left: 5px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #ff6f91;
+    box-shadow: 18px 0 #ff6f91, 36px 0 #ff6f91, 54px 0 #ff6f91;
+  }
+
+  /* Animación para el movimiento de los bloques en el fondo */
+  @keyframes floatBlocks {
+    0% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-15px) rotate(10deg); }
+    100% { transform: translateY(0) rotate(0deg); }
+  }
+
+  /* 🌟 Contenedor de la tarjeta centrada */
+  .card-container {
+    position: relative;
+    max-width: 420px; /* Hacemos la tarjeta un poco más estrecha */
+    width: 100%;
+    margin: 0 auto;
+    z-index: 2;
+    border: 10px solid #ff6f91;
+    border-radius: 20px;
+    padding: 30px;
+    background: #fff;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+    background: linear-gradient(to bottom, #fffbf5, #f8d9e2);
+  }
+
+  /* 🌟 Detalles de la tarjeta de preguntas */
+  .card {
+    background: linear-gradient(145deg, #ff6f91 0%, #ff527d 100%);
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 15px 0 #ffb3c1, 0 25px 0 #ffa0b0;
+    border: 4px solid #fff;
+    position: relative;
+    transition: transform 0.3s;
+  }
+
+  .card::before {
+    content: "❤️";
+    font-size: 40px; /* Reducimos el tamaño del corazón */
+    display: block;
+    margin-bottom: 10px;
+    text-shadow: 2px 2px #fff;
+  }
+
+  /* 🌟 Botones LEGO 3D */
+  button {
+    background: linear-gradient(to bottom, #ffcb05 0%, #fbb034 100%);
+    border-radius: 8px;
+    padding: 12px 20px; /* Reducimos el tamaño de los botones */
+    border: 3px solid #d18f00;
+    box-shadow: 0 6px #b86c00, 0 6px 0 #b86c00 inset;
+    color: #222;
+    font-size: 14px; /* Reducimos el tamaño de la fuente */
+    margin: 10px;
+    cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.1s;
+    position: relative;
+  }
+
+  button:active {
+    transform: translateY(4px);
+    box-shadow: 0 2px #b86c00, 0 2px 0 #b86c00 inset;
+  }
+
+  /* Popup */
+  .popup {
+    position: fixed;
+    top: 20%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #ffefc5;
+    color: #222;
+    padding: 20px 40px;
+    border: 3px solid #ffb347;
+    border-radius: 10px;
+    box-shadow: 0 5px #d18f00;
+    font-size: 18px;
+    display: none;
+    z-index: 1000;
+  }
+
+  @keyframes cardJump {
+    0% { transform: translateY(0); }
+    30% { transform: translateY(-15px); }
+    50% { transform: translateY(0); }
+    70% { transform: translateY(-7px); }
+    100% { transform: translateY(0); }
+  }
+</style>
+</head>
+<body>
+
+<!-- Muro LEGO 3D con más bloques -->
+<div class="lego-wall" id="legoWall"></div>
+
+<div class="card-container">
+  <div class="card" id="game">
+    <h1>Hola corazón</h1>
+    <p>Vamos a jugar algo…</p>
+    <button onclick="nextStep(1)">START💌</button>
+  </div>
+</div>
+
+<div id="popup" class="popup"></div>
+
+<!-- Sonidos -->
+<audio id="correctSound" preload="auto"><source src="correcto.mp3" type="audio/mpeg" /></audio>
+<audio id="falloSound" preload="auto"><source src="fallo.mp3" type="audio/mpeg" /></audio>
+<audio id="clickSound" preload="auto"><source src="clic.mp3" type="audio/mpeg" /></audio>
+
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+<script>
+const colors = ['#ff4d6d','#ff6f91','#ffb6c1','#ff69b4','#ffd700','#ffa500'];
+
+// Generar más bloques LEGO realistas para el fondo
+function generarMuro() {
+  const wall = document.getElementById('legoWall');
+  for (let i = 0; i < 600; i++) { // Aumentamos aún más la cantidad de bloques
+    const block = document.createElement('div');
+    block.className = 'lego-block';
+    const c1 = colors[Math.floor(Math.random() * colors.length)];
+    const c2 = colors[Math.floor(Math.random() * colors.length)];
+    block.style.background = `linear-gradient(to bottom, ${c1}, ${c2})`;
+    block.style.animationDelay = `${Math.random() * 5}s`;
+    block.style.transform = `rotateX(${Math.random() * 5}deg) rotateY(${Math.random() * 5}deg)`;
+    block.style.transition = "transform 0.3s, background 0.5s ease";
+    wall.appendChild(block);
+
+    // Añadimos efecto de reacción al pasar el ratón
+    block.addEventListener('mouseenter', () => {
+      block.style.transform = "scale(1.2) rotate(10deg)";
+      block.style.background = `linear-gradient(to bottom, #ff69b4, #ff4d6d)`;
+    });
+
+    block.addEventListener('mouseleave', () => {
+      block.style.transform = "scale(1) rotate(0deg)";
+      block.style.background = `linear-gradient(to bottom, ${c1}, ${c2})`;
+    });
+  }
+}
+
+generarMuro();
+
+function lanzarConfeti() {
+  confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 }, colors });
+  confetti({ particleCount: 80, spread: 120, origin: { y: 0.6, x: 0.3 }, colors });
+  confetti({ particleCount: 80, spread: 120, origin: { y: 0.6, x: 0.7 }, colors });
+}
+
+function mostrarPopup(mensaje, esCorrecto) {
+  const popup = document.getElementById("popup");
+  popup.textContent = mensaje;
+  popup.style.background = esCorrecto ? "#c5ffc5" : "#ffc5c5";
+  popup.style.display = "block";
+  setTimeout(() => { popup.style.display = "none"; }, 2000);
+}
+
+function correcta(siguiente) {
+  document.getElementById('correctSound').play();
+  lanzarConfeti();
+  mostrarPopup("💖 Correcto 😍", true);
+  nextStep(siguiente);
+}
+
+function incorrecta() {
+  document.getElementById('falloSound').play();
+  mostrarPopup("❌ Nooo, intenta otra vez", false);
+}
+
+function nextStep(step) {
+  const game = document.getElementById("game");
+  const clickSound = document.getElementById("clickSound");
+  game.style.animation = "cardJump 0.5s";
+  clickSound.play();
+  setTimeout(() => { game.style.animation = ""; }, 500);
+
+  if (step === 1) {
+    game.innerHTML = `<h1>Pregunta 1 💭</h1>
+    <p>¿Dónde fue nuestra primera cita?</p>
+    <button onclick="correcta(2)">En Waffles and Coffee</button>
+    <button onclick="incorrecta()">En Jerez</button>`;
+  }
+
+  if (step === 2) {
+    game.innerHTML = `<h1>Pregunta 2 💗</h1>
+    <p>¿Me seguirías amando si un día me convierto en una cebolla?</p>
+    <button onclick="incorrecta()">No, que asco mejor nadota</button>
+    <button onclick="correcta(3)">Ooooobvio que si 💕</button>`;
+  }
+
+  if (step === 3) {
+    game.innerHTML = `<h1>Última pregunta 💘</h1>
+    <p>Esta sí es MUY importante…</p>
+    <h2>¿Quieres ser mi San Valentín? 🌹</h2>
+    <button id="yesButton">SÍ 💞</button>
+    <button id="noButton">NO, TE ODIO</button>`;
+
+    const yesBtn = document.getElementById('yesButton');
+    yesBtn.addEventListener('click', () => {
+      document.getElementById('correctSound').play();
+      lanzarConfeti();
+      mostrarPopup("💖 SABÍA QUE DIRÍAS QUE SÍ, TE AMOOO 💖", true);
+    });
+
+    const noBtn = document.getElementById('noButton');
+    noBtn.addEventListener('mousemove', () => {
+      const x = Math.random() * 300;
+      const y = Math.random() * 100;
+      noBtn.style.transform = `translate(${x}px, ${y}px) scale(1.1)`;
+      noBtn.style.transition = "transform 0.1s";
+      setTimeout(() => { noBtn.style.transform = `translate(${x}px, ${y}px) scale(1)`; }, 100);
+    });
+    noBtn.addEventListener('click', () => { mostrarPopup("no puedes decir que no!", false); });
+  }
+}
+</script>
+</body>
+</html>
